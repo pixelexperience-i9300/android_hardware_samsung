@@ -17,14 +17,15 @@
 package org.lineageos.settings.device;
 
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
 
-public class AdvancedDisplayActivity extends PreferenceActivity {
+import com.android.settingslib.drawer.SettingsDrawerActivity;
+
+public class AdvancedDisplayActivity extends SettingsDrawerActivity {
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getFragmentManager().beginTransaction().replace(android.R.id.content,
+        getFragmentManager().beginTransaction().replace(R.id.content_frame,
                 new AdvancedDisplayFragment()).commit();
     }
 }

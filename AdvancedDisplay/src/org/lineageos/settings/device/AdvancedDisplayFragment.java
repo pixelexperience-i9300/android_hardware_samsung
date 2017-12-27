@@ -16,11 +16,9 @@
 
 package org.lineageos.settings.device;
 
-import android.app.ActionBar;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.v14.preference.PreferenceFragment;
-import android.view.MenuItem;
 
 import org.lineageos.settings.device.R;
 
@@ -28,32 +26,20 @@ import org.lineageos.internal.util.FileUtils;
 
 public class AdvancedDisplayFragment extends PreferenceFragment {
     private mDNIeScenario mmDNIeScenario;
-    private mDNIeAccessibility mmDNIeAccessibility;
+    private mDNIeNegative mmDNIeNegative;
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         addPreferencesFromResource(R.xml.screen_preferences);
         Resources res = getResources();
 
-        final ActionBar actionBar = getActivity().getActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-
         /* mDNIe */
         mmDNIeScenario = (mDNIeScenario) findPreference(Constants.KEY_MDNIE_SCENARIO);
         mmDNIeScenario.setEnabled(
                 FileUtils.isFileWritable(res.getString(R.string.mdnie_scenario_sysfs_file)));
 
-        mmDNIeAccessibility = (mDNIeAccessibility) findPreference(Constants.KEY_MDNIE_ACCESSIBILITY);
-        mmDNIeAccessibility.setEnabled(
-                FileUtils.isFileWritable(res.getString(R.string.mdnie_accessibility_sysfs_file)));
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            getActivity().onBackPressed();
-            return true;
-        }
-        return false;
+        mmDNIeNegative = (mDNIeNegative) findPreference(Constants.KEY_MDNIE_NEGATIVE);
+        mmDNIeNegative.setEnabled(
+                FileUtils.isFileWritable(res.getString(R.string.mdnie_negative_sysfs_file)));
     }
 }
