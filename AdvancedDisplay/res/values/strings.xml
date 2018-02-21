@@ -24,6 +24,6 @@
     <!-- mDNIe -->
     <string name="mdnie_scenario_title_head">Scenario</string>
     <string name="mdnie_scenario_summary_head">Set the mDNIe scenario</string>
-    <string name="mdnie_negative_title_head">Negative mode</string>
-    <string name="mdnie_negative_summary_head">Enable/disable inverted colors</string>
+    <string name="mdnie_accessibility_title_head">Accessibility mode</string>
+    <string name="mdnie_accessibility_summary_head">Set the mDNIe accessibility mode</string>
 </resources>
