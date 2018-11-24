@@ -6652,22 +6652,22 @@ int radio::processRadioState(int newRadioState, int slotId, int indicationType, 
         /* This is old RIL. Decode Subscription source and Voice Radio Technology
            from Radio State and send change notifications if there has been a change */
         newVoiceRadioTech = decodeVoiceRadioTechnology((RIL_RadioState)newRadioState);
-        if(newVoiceRadioTech != voiceRadioTech) {
+        //if(newVoiceRadioTech != voiceRadioTech) {
             voiceRadioTech = newVoiceRadioTech;
             voiceRadioTechChangedInd(slotId, indicationType, token, e, &voiceRadioTech, sizeof(int));
-        }
+        //}
         if(is3gpp2(newVoiceRadioTech)) {
             newCdmaSubscriptionSource = decodeCdmaSubscriptionSource((RIL_RadioState)newRadioState);
-            if(newCdmaSubscriptionSource != cdmaSubscriptionSource) {
+            //if(newCdmaSubscriptionSource != cdmaSubscriptionSource) {
                 cdmaSubscriptionSource = newCdmaSubscriptionSource;
                 cdmaSubscriptionSourceChangedInd(slotId, indicationType, token, e, &cdmaSubscriptionSource, sizeof(int));
-            }
+            //}
         }
         newSimStatus = decodeSimStatus((RIL_RadioState)newRadioState);
-        if(newSimStatus != simRuimStatus) {
+        //if(newSimStatus != simRuimStatus) {
             simRuimStatus = newSimStatus;
             simStatusChangedInd(slotId, indicationType, token, e, &simRuimStatus, sizeof(int));
-        }
+        //}
 
         /* Send RADIO_ON to telephony */
         newRadioState = RADIO_STATE_ON;
