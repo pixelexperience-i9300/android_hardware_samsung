@@ -3966,7 +3966,8 @@ IccIoResult responseIccIo(RadioResponseInfo& responseInfo, int serial, int respo
     populateResponseInfo(responseInfo, serial, responseType, e);
     IccIoResult result = {};
 
-    if (response == NULL || responseLen != sizeof(RIL_SIM_IO_Response)) {
+    RLOGE("%s: responseLen=%d (should be %d)", __func__, responseLen, sizeof(RIL_SIM_IO_Response));
+    if (response == NULL || responseLen < sizeof(RIL_SIM_IO_Response)) {
         RLOGE("Invalid response: NULL");
         if (e == RIL_E_SUCCESS) responseInfo.error = RadioError::INVALID_RESPONSE;
         result.simResponse = hidl_string();
