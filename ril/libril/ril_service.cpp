@@ -1331,22 +1331,6 @@ Return<void> RadioImpl::setNetworkSelectionModeManual(int32_t serial,
 #endif
     dispatchString(serial, mSlotId, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL,
             operatorNumeric.c_str());
-
-    /**
-      * Qualcomm's RIL doesn't seem to issue any callbacks for opcode 47
-      * This may be a bug on how we call rild or simply some proprietary 'feature'
-      * ..and we don't care: We simply send a SUCCESS message back to the caller to
-      * indicate that we received the command & unblock the UI.
-      * The user will still see if the registration was OK by using the
-      * normal signal meter
-      */
-    RLOGE("setNetworkSelectionModeManual: sending fake success event");
-    RequestInfo *pRI = android::addRequestToList(serial, mSlotId,
-            RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL);
-    if (pRI != NULL) {
-        RIL_onRequestComplete(pRI, RIL_E_SUCCESS, NULL, 0);
-    }
-
     return Void();
 }
 
@@ -2565,8 +2549,7 @@ Return<void> RadioImpl::getRadioCapability(int32_t serial) {
 #if VDBG
     RLOGD("getRadioCapability: serial %d", serial);
 #endif
-    RequestInfo *pRI = android::addRequestToList(serial, mSlotId, RIL_REQUEST_GET_RADIO_CAPABILITY);
-    sendErrorResponse(pRI, RIL_E_REQUEST_NOT_SUPPORTED);
+    dispatchVoid(serial, mSlotId, RIL_REQUEST_GET_RADIO_CAPABILITY);
     return Void();
 }
 
@@ -3966,8 +3949,7 @@ IccIoResult responseIccIo(RadioResponseInfo& responseInfo, int serial, int respo
     populateResponseInfo(responseInfo, serial, responseType, e);
     IccIoResult result = {};
 
-    RLOGE("%s: responseLen=%d (should be %d)", __func__, responseLen, sizeof(RIL_SIM_IO_Response));
-    if (response == NULL || responseLen < sizeof(RIL_SIM_IO_Response)) {
+    if (response == NULL || responseLen != sizeof(RIL_SIM_IO_Response)) {
         RLOGE("Invalid response: NULL");
         if (e == RIL_E_SUCCESS) responseInfo.error = RadioError::INVALID_RESPONSE;
         result.simResponse = hidl_string();
@@ -6653,22 +6635,22 @@ int radio::processRadioState(int newRadioState, int slotId, int indicationType, 
         /* This is old RIL. Decode Subscription source and Voice Radio Technology
            from Radio State and send change notifications if there has been a change */
         newVoiceRadioTech = decodeVoiceRadioTechnology((RIL_RadioState)newRadioState);
-        //if(newVoiceRadioTech != voiceRadioTech) {
+        if(newVoiceRadioTech != voiceRadioTech) {
             voiceRadioTech = newVoiceRadioTech;
             voiceRadioTechChangedInd(slotId, indicationType, token, e, &voiceRadioTech, sizeof(int));
-        //}
+        }
         if(is3gpp2(newVoiceRadioTech)) {
             newCdmaSubscriptionSource = decodeCdmaSubscriptionSource((RIL_RadioState)newRadioState);
-            //if(newCdmaSubscriptionSource != cdmaSubscriptionSource) {
+            if(newCdmaSubscriptionSource != cdmaSubscriptionSource) {
                 cdmaSubscriptionSource = newCdmaSubscriptionSource;
                 cdmaSubscriptionSourceChangedInd(slotId, indicationType, token, e, &cdmaSubscriptionSource, sizeof(int));
-            //}
+            }
         }
         newSimStatus = decodeSimStatus((RIL_RadioState)newRadioState);
-        //if(newSimStatus != simRuimStatus) {
+        if(newSimStatus != simRuimStatus) {
             simRuimStatus = newSimStatus;
             simStatusChangedInd(slotId, indicationType, token, e, &simRuimStatus, sizeof(int));
-        //}
+        }
 
         /* Send RADIO_ON to telephony */
         newRadioState = RADIO_STATE_ON;
