@@ -847,6 +847,32 @@ static int gralloc_perform(struct gralloc_module_t const* module,
                     hnd, *outFormat);
             } break;
 
+        case GRALLOC1_ADAPTER_PERFORM_GET_PRODUCER_USAGE:
+            {
+                auto hnd =  va_arg(args, private_handle_t*);
+                auto outUsage = va_arg(args, uint64_t*);
+                *outUsage = hnd->producer_usage;
+                ALOGV("%s: (%p) GRALLOC1_ADAPTER_PERFORM_GET_PRODUCER_USAGE 0x%08x", __func__,
+                    hnd, hnd->producer_usage);
+            } break;
+        case GRALLOC1_ADAPTER_PERFORM_GET_CONSUMER_USAGE:
+            {
+                auto hnd =  va_arg(args, private_handle_t*);
+                auto outUsage = va_arg(args, uint64_t*);
+                *outUsage = hnd->consumer_usage;
+                ALOGV("%s: (%p) GRALLOC1_ADAPTER_PERFORM_GET_CONSUMER_USAGE 0x%08x", __func__,
+                    hnd, hnd->consumer_usage);
+            } break;
+
+        case GRALLOC1_ADAPTER_PERFORM_GET_BACKING_STORE:
+            {
+                auto hnd =  va_arg(args, private_handle_t*);
+                auto outBackingStore = va_arg(args, uint64_t*);
+                *outBackingStore = hnd->backing_store;
+                ALOGV("%s: (%p) GRALLOC1_ADAPTER_PERFORM_GET_BACKING_STORE %llu", __func__,
+                    hnd, *outBackingStore);
+            } break;
+
         case GRALLOC1_ADAPTER_PERFORM_GET_NUM_FLEX_PLANES:
             {
                 auto hnd =  va_arg(args, private_handle_t*);
