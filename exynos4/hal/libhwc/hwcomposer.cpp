@@ -92,6 +92,7 @@ static int dup_or_warn(int fence)
 static bool format_is_supported_by_fimg(int format)
 {
     switch (format) {
+    case HAL_PIXEL_FORMAT_RGB_565:
     case HAL_PIXEL_FORMAT_RGBA_4444:
     case HAL_PIXEL_FORMAT_RGBX_8888:
     case HAL_PIXEL_FORMAT_BGRA_8888:
@@ -102,7 +103,6 @@ static bool format_is_supported_by_fimg(int format)
     case HAL_PIXEL_FORMAT_CUSTOM_YCrCb_420_SP:
         return true;
 
-    case HAL_PIXEL_FORMAT_RGB_565:
     default:
         ALOGV("%s format=%d false", __FUNCTION__, format);
         return false;
@@ -350,14 +350,13 @@ bool is_overlay_supported(struct hwc_context_t *ctx, hwc_layer_1_t &layer, size_
     ALOGV("%s layer_requires_process() mode=%d", __FUNCTION__, (int) mode);
 
     switch (mode) {
-#if 0
     case gsc_map_t::FIMG:
         if (!supports_fimg(layer)) {
             ALOGW("\tlayer %u: FIMG required but not supported", i);
             return false;
         }
         break;
-#endif
+
     case gsc_map_t::FIMC:
         if (!supports_fimc(layer)) {
             ALOGW("\tlayer %u: FIMG required but not supported", i);
@@ -841,22 +840,12 @@ static int perform_fimg(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct h
     }
 
     return ret;
-
 }
 
 static int perform_fimc(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct hwc_win_info_t &win)
 {
     private_handle_t *src_handle = private_handle_t::dynamicCast(layer.handle);
-    hwc_rect_t crop;
     int ret = 0;
-    int rotate;
-
-    struct private_handle_t *dst_handle = private_handle_t::dynamicCast(win.dst_buf[win.current_buf]);
-    uint32_t dst_addr = (uint32_t) dst_handle->paddr;
-    int w, h;
-
-    struct fimc_buf dst_buf;
-    struct fimc_buf buf;
 
     // before sending anything to FIMC
     if (layer.acquireFenceFd >= 0) {
@@ -866,59 +855,60 @@ static int perform_fimc(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct h
     ret = v4l2_reqbufs_out(ctx, 0);
     if (ret < 0) {
         ALOGE("%s: v4l2_reqbufs_out() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     //src
-    crop = integerizeSourceCrop(layer.sourceCropf);
+    hwc_rect_t crop = integerizeSourceCrop(layer.sourceCropf);
 
     ret = v4l2_s_fmt_pix_out(ctx, EXYNOS4_ALIGN(src_handle->width, 16), EXYNOS4_ALIGN(src_handle->height, 16), HAL_PIXEL_FORMAT_2_V4L2_PIX(src_handle->format), 0);
     if (ret < 0) {
         ALOGE("%s: v4l2_s_fmt_pix_out() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     //some yuv formats do need width and height to be multiple of 2
     ret = v4l2_s_crop(ctx, crop.left, crop.top, multipleOf2(WIDTH(crop)), multipleOf2(HEIGHT(crop)));
     if (ret < 0) {
         ALOGE("%s: v4l2_s_crop() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_reqbufs_out(ctx, 1);
     if (ret < 0) {
         ALOGE("%s: v4l2_reqbufs_out() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     //dst
-    rotate = rotateValueHAL2PP(layer.transform);
+    int rotate = rotateValueHAL2PP(layer.transform);
     ret = v4l2_s_ctrl(ctx, V4L2_CID_ROTATION, rotate);
     if (ret < 0) {
         ALOGE("%s: s_ctrl V4L2_CID_ROTATION rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_s_ctrl(ctx, V4L2_CID_HFLIP, layer.transform == HWC_TRANSFORM_FLIP_H?1:0);
     if (ret < 0) {
         ALOGE("%s: s_ctrl V4L2_CID_HFLIP rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_s_ctrl(ctx, V4L2_CID_VFLIP, layer.transform == HWC_TRANSFORM_FLIP_V?1:0);
     if (ret < 0) {
         ALOGE("%s: s_ctrl V4L2_CID_VFLIP rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_g_fbuf(ctx, NULL, NULL, NULL, NULL); //TODO, check whether so it is ok
     if (ret < 0) {
         ALOGE("%s: v4l2_g_fbuf() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
-    dst_handle = private_handle_t::dynamicCast(win.dst_buf[win.current_buf]);
-    dst_addr = (uint32_t) dst_handle->paddr;
+    struct private_handle_t *dst_handle = private_handle_t::dynamicCast(win.dst_buf[win.current_buf]);
+    uint32_t dst_addr = (uint32_t) dst_handle->paddr;
+    int w, h;
 
     if (rotate == 90 || rotate == 270) {
         w = HEIGHT(layer.displayFrame);
@@ -931,33 +921,35 @@ static int perform_fimc(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct h
     ret = v4l2_s_fbuf(ctx, (void *)dst_addr, w, h, V4L2_PIX_FMT_RGB32);
     if (ret < 0) {
         ALOGE("%s: v4l2_s_fbuf(dst_addr(0x%x)) rc=%d", __FUNCTION__, dst_addr, ret);
-        goto release;
+        return ret;
     }
 
+    struct fimc_buf dst_buf;
     memset(&dst_buf, 0, sizeof(struct fimc_buf));
     dst_buf.base[FIMC_ADDR_Y] = dst_addr;
 
     ret = v4l2_s_ctrl(ctx, V4L2_CID_DST_INFO, (int) &dst_buf);
     if (ret < 0) {
         ALOGE("%s: s_ctrl V4L2_CID_DST_INFO rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_s_fmt_win(ctx, 0, 0, w, h);
     if (ret < 0) {
         ALOGE("%s: v4l2_s_fmt_win() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     //oneshot
     ret = v4l2_streamon_out(ctx);
     if (ret < 0) {
         ALOGE("%s: v4l2_streamon_out() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ALOGV("%s: src_handle usage(0x%x) base(0x%x) paddr(0x%x)", __FUNCTION__, src_handle->usage, src_handle->base, src_handle->paddr);
 
+    struct fimc_buf buf;
     buf.base[FIMC_ADDR_Y] = src_handle->paddr + src_handle->offset;
     buf.base[FIMC_ADDR_CB] = src_handle->paddr + src_handle->offset + src_handle->uoffset;
     buf.base[FIMC_ADDR_CR] = src_handle->paddr + src_handle->offset + src_handle->uoffset + src_handle->voffset;
@@ -965,20 +957,20 @@ static int perform_fimc(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct h
     ret = v4l2_qbuf(ctx, 0, (unsigned long) &buf);
     if (ret < 0) {
         ALOGE("%s: v4l2_qbuf(0x%x) rc=%d", __FUNCTION__, src_handle->base, ret);
-        goto release;
+        return ret;
     }
 
     //wait??
     ret = v4l2_dqbuf(ctx);
     if (ret < 0) {
         ALOGE("%s: v4l2_dqbuf() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     ret = v4l2_streamoff(ctx);
     if (ret < 0) {
         ALOGE("%s: v4l2_streamoff() rc=%d", __FUNCTION__, ret);
-        goto release;
+        return ret;
     }
 
     if (layer.acquireFenceFd >= 0) {
@@ -986,12 +978,6 @@ static int perform_fimc(hwc_context_t *ctx, const hwc_layer_1_t &layer, struct h
     }
 
     return w;
-release:
-    if (layer.acquireFenceFd >= 0) {
-        close(layer.acquireFenceFd);
-    }
-
-    return ret;
 }
 
 static void config_overlay(hwc_context_t *ctx, hwc_layer_1_t &layer, s3c_fb_win_config &cfg)
