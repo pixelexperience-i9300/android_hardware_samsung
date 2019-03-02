@@ -16,6 +16,7 @@
 #
 
 ifeq ($(TARGET_BOARD_PLATFORM),exynos4)
+ifeq ($(TARGET_PROVIDES_LIBEGL_MALI),true)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
@@ -45,5 +46,5 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_RELATIVE_PATH := egl
 
 include $(BUILD_SHARED_LIBRARY)
-
+endif
 endif
