@@ -18,7 +18,7 @@ package com.samsung.hardware;
 
 import android.util.Log;
 
-import com.android.internal.util.dotos.FileUtils;
+import com.samsung.hardware.util.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

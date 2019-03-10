@@ -18,7 +18,7 @@ package com.samsung.hardware;
 
 import android.os.SystemProperties;
 
-import com.android.internal.util.dotos.FileUtils;
+import com.samsung.hardware.util.FileUtils;
 
 /**
  * Sunlight Readability Enhancement support, aka Facemelt Mode.
