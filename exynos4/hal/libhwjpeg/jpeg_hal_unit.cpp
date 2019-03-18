@@ -16,6 +16,8 @@
 
 #define LOG_TAG "libhwjpeg"
 
+#pragma clang diagnostic ignored "-Wunused-function"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -34,8 +36,6 @@
 #include <log/log.h>
 
 #include "jpeg_hal.h"
-
-#pragma clang diagnostic ignored "-Wunused-function"
 
 #ifdef JPEG_PERF_MEAS
 unsigned long measure_time(struct timeval *start, struct timeval *stop)
